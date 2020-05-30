@@ -28,7 +28,7 @@ Relational algebra provides a formal logic and notation for thinking about opera
 ```{r}
 
 library(purrr)
-library(tibble)
+library(digest)
 
 R1 <- data.frame(
   a=c(1,2,3,4,5),
@@ -37,13 +37,26 @@ R1 <- data.frame(
   stringsAsFactors = FALSE
 )
 
+R2 <- data.frame(
+  c=c(1,2,3,4),
+  d=c("a","b","c","d"),
+  stringsAsFactors = FALSE
+)
 
-RA_project <- function(R, names){
+project <- function(R, names){
   return(R[,names])
 }
 
-RA_select <- function(R, func){
-  return(R[func(R),])
+select <- function(R, cond_func){
+  return(R[cond_func(R),])
+}
+
+cond_func_eq <- function(attr1, attr2){
+  return(
+    function(R){
+      R[[attr1]] == R[[attr2]]
+    }
+  )
 }
 
 rename <- function(R, new_names){
@@ -52,28 +65,70 @@ rename <- function(R, new_names){
 
 cross_product <- function(R1, R2){
   
-  R1_list <- split(R1, seq(nrow(R1)))
-
-  R2_list <- split(R2, seq(nrow(R2)))
-
+  R1_names <- names(R1)
+  R2_names <- names(R2)
   
-  card_R1 <- length(R1_list)
-
-  card_R2 <- length(R2_list)
-
+  new_names <- c(names(R1), names(R2))
   
-  append_R2 <- function(R1_tuple, R2, card_R1, card_R2){
-    print(R1_tuple)
-    R1_tuples <- rep(list(R1_tuple), card_R2)
-    print(R1_tuples)
-    return(map2(R1_tuples, R2, cbind))
+  is_duplicated <- function(nm, nms){
+    return(sum(nms==nm) > 1)
   }
   
-  cross_prod_list <- map(R1_list, append_R2, R2_list, card_R1, card_R2)
+  dup_r1_index <- map_lgl(R1_names, is_duplicated, new_names)
+  dup_r2_index <- map_lgl(R2_names, is_duplicated, new_names)
   
-  return(cross_prod_list)
+  names(R1)[dup_r1_index] <- paste0("L_", names(R1)[dup_r1_index])
+
+  names(R2)[dup_r2_index] <- paste0("R_", names(R2)[dup_r2_index])
+
+  indexes <- expand.grid(1:nrow(R2), 1:nrow(R1))
+  
+  R1 <- R1[indexes[[2]], ]
+  R2 <- R2[indexes[[1]], ]
+
+  return(cbind(R1, R2))
   
 }
+
+inner_join <- function(R1, R2, cond_func){
+  
+  R3 <- cross_product(R1, R2)
+  
+  return(R3[cond_func(R3),])
+  
+}
+
+ra_union <- function(R1, R2){
+  check_set_compatibility(R1, R2)
+  R3 <- rbind(R1, R2)
+  names(R3) <- names(R1)
+  return(R3)
+}
+
+ra_diff <- function(R1, R2){
+  check_set_compatibility(R1, R2)
+  R1_hashes <- apply(R1, 1, digest)
+  R2_hashes <- apply(R2, 1, digest)
+  R1_hash_diff <- setdiff(R1_hashes, R2_hashes)
+  return(R1[R1_hashes %in% R1_hash_diff, ])
+}
+
+ra_group <- function(R1, group_columns, cell_columns, func){
+  
+  #TODO add grouping method
+  
+}
+
+check_set_compatibility <- function(R1, R2){
+  
+  R1_col_modes <- as.character(apply(R1, 2, mode))
+  R2_col_modes <- as.character(apply(R2, 2, mode))
+  
+  if(!( ncol(R1) == ncol(R2) ) | !(identical(R1_col_modes, R2_col_modes)) ){
+    stop("Data frames are not compatible.")
+  }
+}
+
 
 
 
