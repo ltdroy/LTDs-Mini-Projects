@@ -1,0 +1,86 @@
+---
+title: "Relational algebra as a tool to help on your SQL and dplyr journey"
+author: "L T Droy"
+date: "30/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Relational Algebra
+
+Despite routinely doing data manipulation tasks in R, I only recently discovered *relational algebra* as a way of thinking in a *formal* way about these tasks. I came across relational algebra as part of my ongoing CPD journey, which has recently focused on learning PostgreSQL.
+
+Relational algebra provides a formal logic and notation for thinking about operations which manipulate and join (etc.) tables of data. Building or using an algebra of table manipulations might sound like a dry academic exercise. However, I've found that learning some of the basic of relational algebra is very practically useful:
+
+1. It helps me to think more clearly about data manipulation operations.
+2. It helps me to understand when different sets of data manipulation code are logically equivilent (and so will produce the same result).
+3. When using R, it helps me to write for efficient code. 
+4 (bonus). It provides the basis for a educational coding challenge!
+
+## A brief overview of relational algebra
+
+
+## 4 (Bonus) Educational coding challenge
+
+```{r}
+
+library(purrr)
+library(tibble)
+
+R1 <- data.frame(
+  a=c(1,2,3,4,5),
+  b=c("a","b","c","d","e"),
+  c=c(TRUE,FALSE,TRUE,FALSE,FALSE),
+  stringsAsFactors = FALSE
+)
+
+
+RA_project <- function(R, names){
+  return(R[,names])
+}
+
+RA_select <- function(R, func){
+  return(R[func(R),])
+}
+
+rename <- function(R, new_names){
+  names(R) <- new_names
+}
+
+cross_product <- function(R1, R2){
+  
+  R1_list <- split(R1, seq(nrow(R1)))
+
+  R2_list <- split(R2, seq(nrow(R2)))
+
+  
+  card_R1 <- length(R1_list)
+
+  card_R2 <- length(R2_list)
+
+  
+  append_R2 <- function(R1_tuple, R2, card_R1, card_R2){
+    print(R1_tuple)
+    R1_tuples <- rep(list(R1_tuple), card_R2)
+    print(R1_tuples)
+    return(map2(R1_tuples, R2, cbind))
+  }
+  
+  cross_prod_list <- map(R1_list, append_R2, R2_list, card_R1, card_R2)
+  
+  return(cross_prod_list)
+  
+}
+
+
+
+
+
+
+```
+
+
+
